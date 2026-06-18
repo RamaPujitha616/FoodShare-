@@ -8,6 +8,8 @@ import { StatsSkeleton } from '../components/LoadingSkeleton';
 import { Plus, Edit2, Calendar, Clipboard, Award, ShieldAlert, X, MapPin, Phone, MessageSquare, Clock } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
+import CertificatesList from '../components/CertificatesList';
+
 const DonorDashboard = () => {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -317,6 +319,14 @@ const DonorDashboard = () => {
           </div>
         </div>
 
+      </div>
+
+      {/* Badges & Certificates */}
+      <div className="space-y-4">
+        <h3 className="font-bold text-gray-850 dark:text-slate-100 flex items-center gap-2 text-lg">
+          🏆 Milestone Certificates
+        </h3>
+        <CertificatesList />
       </div>
 
       {/* History Table */}

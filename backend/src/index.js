@@ -12,6 +12,7 @@ import dashboardRoutes from './routes/dashboardRoutes.js';
 import leaderboardRoutes from './routes/leaderboardRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import certificateRoutes from './routes/certificateRoutes.js';
 
 // Load env vars
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

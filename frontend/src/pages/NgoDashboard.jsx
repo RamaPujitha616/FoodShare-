@@ -5,6 +5,7 @@ import { useToast } from '../context/ToastContext';
 import CountdownTimer from '../components/CountdownTimer';
 import { StatsSkeleton, CardSkeleton } from '../components/LoadingSkeleton';
 import { Truck, CheckCircle, Gift, MapPin, Phone, Filter, RotateCcw, AlertTriangle, Calendar } from 'lucide-react';
+import CertificatesList from '../components/CertificatesList';
 
 const NgoDashboard = () => {
   const { user } = useAuth();
@@ -384,6 +385,14 @@ const NgoDashboard = () => {
 
         </div>
 
+      </div>
+
+      {/* Badges & Certificates */}
+      <div className="space-y-4">
+        <h3 className="font-bold text-gray-850 dark:text-slate-100 flex items-center gap-2 text-lg">
+          🏆 Milestone Certificates
+        </h3>
+        <CertificatesList />
       </div>
 
     </div>

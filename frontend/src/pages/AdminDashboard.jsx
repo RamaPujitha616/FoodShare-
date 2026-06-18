@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import { useToast } from '../context/ToastContext';
 import { StatsSkeleton, TableRowSkeleton } from '../components/LoadingSkeleton';
-import { Shield, Download, Users, Package, Award, Smile, Trash2, Edit2, X, AlertTriangle } from 'lucide-react';
+import { Shield, Download, Users, Package, Award, Smile, Trash2, Edit2, X, AlertTriangle, Search, ExternalLink, ShieldCheck } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell } from 'recharts';
 
 const AdminDashboard = () => {
@@ -10,8 +11,17 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
-  const [activeTab, setActiveTab] = useState('analytics'); // analytics, users
+  const [adminCertificates, setAdminCertificates] = useState([]);
+  const [activeTab, setActiveTab] = useState('analytics'); // analytics, users, certificates
   
+  // Search and verify states
+  const [searchUser, setSearchUser] = useState('');
+  const [searchType, setSearchType] = useState('');
+  const [verifyId, setVerifyId] = useState('');
+  const [verifyResult, setVerifyResult] = useState(null);
+  const [verifyError, setVerifyError] = useState('');
+  const [downloadingCertId, setDownloadingCertId] = useState(null);
+
   // Edit user modal state
   const [editingUser, setEditingUser] = useState(null);
   const [editName, setEditName] = useState('');
@@ -32,6 +42,11 @@ const AdminDashboard = () => {
       const usersRes = await axios.get('/api/admin/users');
       if (usersRes.data.success) {
         setUsers(usersRes.data.data);
+      }
+
+      const certsRes = await axios.get('/api/certificates');
+      if (certsRes.data.success) {
+        setAdminCertificates(certsRes.data.data);
       }
     } catch (error) {
       console.error('Error fetching admin data:', error);
@@ -111,6 +126,42 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleVerifyCertificate = async (e) => {
+    e.preventDefault();
+    if (!verifyId) return;
+    try {
+      setVerifyError('');
+      setVerifyResult(null);
+      const res = await axios.get(`/api/certificates/${verifyId}/verify`);
+      if (res.data.success) {
+        setVerifyResult(res.data.data);
+      }
+    } catch (err) {
+      setVerifyError(err.response?.data?.message || 'Verification failed. Invalid ID.');
+    }
+  };
+
+  const handleDownloadCertificate = async (certificateId) => {
+    try {
+      setDownloadingCertId(certificateId);
+      const response = await axios.get(`/api/certificates/${certificateId}/download`, {
+        responseType: 'blob',
+      });
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = `certificate_${certificateId}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+      showToast('Certificate PDF downloaded successfully.', 'success');
+    } catch (error) {
+      console.error('Error downloading certificate:', error);
+      showToast('Failed to download certificate PDF.', 'error');
+    } finally {
+      setDownloadingCertId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-10 space-y-8">
@@ -163,9 +214,15 @@ const AdminDashboard = () => {
         </button>
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-6 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'users' ? 'border-primary-555 text-emerald-600 dark:border-primary-450 dark:text-emerald-450' : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-slate-400'}`}
+          className={`px-6 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'users' ? 'border-primary-555 text-emerald-600 dark:border-primary-450 dark:text-emerald-450' : 'border-transparent text-gray-550 hover:text-gray-700 dark:text-slate-400'}`}
         >
           User Accounts Directory ({users.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('certificates')}
+          className={`px-6 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'certificates' ? 'border-primary-555 text-emerald-600 dark:border-primary-450 dark:text-emerald-450' : 'border-transparent text-gray-550 hover:text-gray-700 dark:text-slate-400'}`}
+        >
+          Milestone Certificates ({adminCertificates.length})
         </button>
       </div>
 
@@ -320,7 +377,7 @@ const AdminDashboard = () => {
             </div>
           </div>
         </>
-      ) : (
+      ) : activeTab === 'users' ? (
         /* Users List Directory */
         <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden shadow-sm dark:bg-slate-850 dark:border-slate-800">
           <div className="overflow-x-auto">
@@ -392,6 +449,191 @@ const AdminDashboard = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      ) : (
+        /* Certificates Tab Content */
+        <div className="space-y-8">
+          {/* Certificate Verification Panel */}
+          <div className="bg-white border border-gray-150 rounded-2xl p-6 dark:bg-slate-850 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-gray-905 dark:text-white flex items-center gap-1.5">
+              <ShieldCheck size={18} className="text-emerald-500" /> Verify Certificate Authenticity
+            </h3>
+            <form onSubmit={handleVerifyCertificate} className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                placeholder="Enter Certificate ID (e.g. CERT-DON-CC-ABCD)..."
+                value={verifyId}
+                onChange={(e) => setVerifyId(e.target.value)}
+                className="block flex-grow rounded-xl border border-gray-250 bg-white px-3 py-2 text-sm focus:border-primary-500 focus:outline-none dark:border-slate-750 dark:bg-slate-800 dark:text-white font-mono"
+              />
+              <button
+                type="submit"
+                className="rounded-xl bg-emerald-650 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-700 whitespace-nowrap"
+              >
+                Verify Authenticity
+              </button>
+            </form>
+            
+            {verifyError && (
+              <div className="rounded-xl bg-red-50 dark:bg-red-950/20 border border-red-200 p-3 text-xs text-red-750 flex items-center gap-2">
+                <AlertTriangle size={14} className="shrink-0" />
+                <span className="font-semibold">{verifyError}</span>
+              </div>
+            )}
+
+            {verifyResult && (
+              <div className="rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200 p-4 text-xs space-y-2 text-emerald-850 dark:text-emerald-450">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <ShieldCheck size={16} /> VALID CERTIFICATE
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                  <div><strong>Type:</strong> {verifyResult.certificateType}</div>
+                  <div><strong>ID:</strong> {verifyResult.certificateId}</div>
+                  <div><strong>Recipient:</strong> {verifyResult.userId?.role === 'ngo' ? verifyResult.userId?.orgName : verifyResult.userId?.name} ({verifyResult.userId?.email})</div>
+                  <div><strong>Issued On:</strong> {new Date(verifyResult.issueDate).toLocaleDateString()}</div>
+                </div>
+                <div className="pt-2">
+                  <Link
+                    to={`/verify-certificate/${verifyResult.certificateId}`}
+                    target="_blank"
+                    className="inline-flex items-center gap-1 font-bold text-emerald-700 dark:text-emerald-450 hover:underline"
+                  >
+                    Open Public Verification Page <ExternalLink size={12} />
+                  </Link>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Certificates Search & Directory */}
+          <div className="bg-white border border-gray-150 rounded-2xl overflow-hidden shadow-sm dark:bg-slate-850 dark:border-slate-800">
+            {/* Header / Filter panel */}
+            <div className="border-b border-gray-150 px-6 py-4 dark:border-slate-700 flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+              <h3 className="font-bold text-gray-850 dark:text-slate-100">Certificates Ledger</h3>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                {/* Search by user */}
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                    <Search size={14} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Search by recipient..."
+                    value={searchUser}
+                    onChange={(e) => setSearchUser(e.target.value)}
+                    className="block rounded-xl border border-gray-250 bg-white pl-8 pr-3 py-1.5 text-xs focus:border-primary-500 focus:outline-none dark:border-slate-750 dark:bg-slate-800 dark:text-white"
+                  />
+                </div>
+
+                {/* Search by type */}
+                <input
+                  type="text"
+                  placeholder="Filter by certificate type..."
+                  value={searchType}
+                  onChange={(e) => setSearchType(e.target.value)}
+                  className="block rounded-xl border border-gray-250 bg-white px-3 py-1.5 text-xs focus:border-primary-500 focus:outline-none dark:border-slate-750 dark:bg-slate-800 dark:text-white"
+                />
+              </div>
+            </div>
+
+            {/* Directory Table */}
+            <div className="overflow-x-auto">
+              {adminCertificates.filter((cert) => {
+                const recipient = cert.userId?.role === 'ngo' ? cert.userId?.orgName : cert.userId?.name;
+                const userMatches = !searchUser || 
+                  recipient?.toLowerCase().includes(searchUser.toLowerCase()) ||
+                  cert.userId?.email?.toLowerCase().includes(searchUser.toLowerCase());
+                const typeMatches = !searchType || 
+                  cert.certificateType?.toLowerCase().includes(searchType.toLowerCase());
+                return userMatches && typeMatches;
+              }).length === 0 ? (
+                <div className="py-12 text-center text-gray-450">
+                  <Award size={36} className="mx-auto text-gray-300 mb-2" />
+                  <p className="text-xs font-semibold">No certificates match your search query.</p>
+                </div>
+              ) : (
+                <table className="min-w-full divide-y divide-gray-150 dark:divide-slate-700">
+                  <thead className="bg-gray-50/50 dark:bg-slate-800/40">
+                    <tr>
+                      <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400">
+                        Recipient Name / Org
+                      </th>
+                      <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400">
+                        Certificate Type / ID
+                      </th>
+                      <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400">
+                        Achievement Stats
+                      </th>
+                      <th scope="col" className="px-6 py-3.5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400 w-36">
+                        Issued Date
+                      </th>
+                      <th scope="col" className="px-6 py-3.5 text-right text-xs font-bold text-gray-500 uppercase tracking-wider dark:text-slate-400 w-40">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-150 dark:divide-slate-700">
+                    {adminCertificates.filter((cert) => {
+                      const recipient = cert.userId?.role === 'ngo' ? cert.userId?.orgName : cert.userId?.name;
+                      const userMatches = !searchUser || 
+                        recipient?.toLowerCase().includes(searchUser.toLowerCase()) ||
+                        cert.userId?.email?.toLowerCase().includes(searchUser.toLowerCase());
+                      const typeMatches = !searchType || 
+                        cert.certificateType?.toLowerCase().includes(searchType.toLowerCase());
+                      return userMatches && typeMatches;
+                    }).map((cert) => {
+                      const recipient = cert.userId?.role === 'ngo' ? cert.userId?.orgName : cert.userId?.name;
+                      return (
+                        <tr key={cert._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/10 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-bold text-gray-900 dark:text-white">{recipient || 'Unknown Recipient'}</div>
+                            <div className="text-xs text-gray-450 capitalize">{cert.role}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-bold text-gray-855 dark:text-slate-200">{cert.certificateType}</div>
+                            <div className="text-xs font-mono text-gray-450 mt-0.5">{cert.certificateId}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-xs text-gray-800 dark:text-slate-350">
+                              Meals Achieved: <strong>{cert.mealsAchieved}</strong>
+                            </div>
+                            <div className="text-xs text-gray-450 mt-0.5">
+                              Points: <strong>{cert.impactPoints} pts</strong>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-slate-400">
+                            {new Date(cert.issueDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-xs space-x-3">
+                            <button
+                              onClick={() => handleDownloadCertificate(cert.certificateId)}
+                              disabled={downloadingCertId === cert.certificateId}
+                              className="text-emerald-650 hover:text-emerald-700 dark:text-emerald-450 font-bold inline-flex items-center gap-0.5"
+                            >
+                              {downloadingCertId === cert.certificateId ? (
+                                <span className="h-3 w-3 animate-spin rounded-full border border-current border-t-transparent"></span>
+                              ) : (
+                                <Download size={12} />
+                              )}
+                              Download
+                            </button>
+                            <Link
+                              to={`/verify-certificate/${cert.certificateId}`}
+                              target="_blank"
+                              className="text-gray-550 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-300 font-bold inline-flex items-center gap-0.5"
+                            >
+                              <ExternalLink size={12} /> Verify
+                            </Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
         </div>
       )}

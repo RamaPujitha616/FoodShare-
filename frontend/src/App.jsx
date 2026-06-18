@@ -19,6 +19,7 @@ import Leaderboard from './pages/Leaderboard';
 import DonorDashboard from './pages/DonorDashboard';
 import NgoDashboard from './pages/NgoDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import VerifyCertificate from './pages/VerifyCertificate';
 
 const App = () => {
   return (
@@ -40,6 +41,7 @@ const App = () => {
                   <Route path="/register" element={<Register />} />
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password/:token" element={<ResetPassword />} />
+                  <Route path="/verify-certificate/:certificateId" element={<VerifyCertificate />} />
 
                   {/* Authenticated / Role protected routes */}
                   <Route

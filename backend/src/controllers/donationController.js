@@ -1,6 +1,7 @@
 import Donation from '../models/Donation.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import { checkCertificateMilestones } from './certificateController.js';
 
 // Helper to check badge triggers
 const checkBadgeTrigger = async (user, pointsEarned) => {
@@ -294,6 +295,7 @@ export const updateDonation = async (req, res) => {
         donorUser.mealsDonated += meals;
         await donorUser.save();
         await checkBadgeTrigger(donorUser, points);
+        await checkCertificateMilestones(donorUser._id);
 
         // Update NGO Profile
         const ngoUser = await User.findById(donation.ngo);
@@ -301,6 +303,7 @@ export const updateDonation = async (req, res) => {
         ngoUser.deliveriesCompleted += 1;
         await ngoUser.save();
         await checkBadgeTrigger(ngoUser, points);
+        await checkCertificateMilestones(ngoUser._id);
 
         // Notify Donor
         await Notification.create({
