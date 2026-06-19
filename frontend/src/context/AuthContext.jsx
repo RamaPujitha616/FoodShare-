@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+const API_URL = import.meta.env.VITE_API_URL;
 
 const AuthContext = createContext();
 
@@ -19,16 +20,16 @@ export const AuthProvider = ({ children }) => {
     const verifyToken = async () => {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      
+
       if (storedToken && storedUser) {
         try {
           setToken(storedToken);
           setUser(JSON.parse(storedUser));
-          
+
           // Verify with a test ping to dashboard or profile
           axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-          const res = await axios.get('/api/dashboard');
-          
+          const res = await axios.get(`${API_URL}/api/dashboard`);
+
           // If the dashboard returns user updates, sync them
           // Depending on the dashboard metrics
         } catch (error) {
@@ -44,12 +45,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await axios.post(`${API_URL}/api/auth/login`, { email, password });
       const { token: userToken, user: userData } = res.data;
-      
+
       localStorage.setItem('token', userToken);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       setToken(userToken);
       setUser(userData);
       return { success: true };
@@ -63,12 +64,12 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (formData) => {
     try {
-      const res = await axios.post('/api/auth/register', formData);
+      const res = await axios.post(`${API_URL}/api/auth/register`, formData);
       const { token: userToken, user: userData } = res.data;
-      
+
       localStorage.setItem('token', userToken);
       localStorage.setItem('user', JSON.stringify(userData));
-      
+
       setToken(userToken);
       setUser(userData);
       return { success: true };
