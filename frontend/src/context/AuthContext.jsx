@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-
+const API_URL = (import.meta.env.VITE_API_URL || 'https://foodshare-plus-backend-sys.onrender.com').replace(/\/+$/, '');
+const api = axios.create({ baseURL: API_URL });
 
 const AuthContext = createContext();
 
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post('/api/auth/login', { email, password });
+      const res = await api.post('/api/auth/login', { email, password });
       const { token: userToken, user: userData } = res.data;
 
       localStorage.setItem('token', userToken);
@@ -64,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (formData) => {
     try {
-      const res = await axios.post('/api/auth/register', formData);
+      const res = await api.post('/api/auth/register', formData);
       const { token: userToken, user: userData } = res.data;
 
       localStorage.setItem('token', userToken);
